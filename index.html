@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Керування Посилками</title>
+    <!-- 1. Підключення Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Налаштування шрифту Inter (рекомендовано Tailwind) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    
+    <!-- Елемент, куди React буде "монтувати" додаток -->
+    <div id="root"></div>
+
+    <!-- 3. Підключення бібліотек -->
+    <!-- React -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel (для компіляції JSX в браузері) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Supabase Client (для підключення до БД) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 4. Наш React-додаток -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createClient } = supabase;
+
+        // === ВАЖЛИВІ НАЛАШТУВАННЯ SUPABASE ===
+        // Вставте ваш URL та ПУБЛІЧНИЙ (ANON) КЛЮЧ
+        const SUPABASE_URL = "https://logxutaepqzmvgsvscle.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvZ3h1dGFlcHF6bXZnc3ZzY2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODU4MDEsImV4cCI6MjA2OTU2MTgwMX0.NhbaKL5X48jHyPPxZ-6EadLcBfM-NMxMA8qbksT9VhE";
+        // ====================================
+
+        // Перевірка, чи вставлено ключ
+        if (SUPABASE_ANON_KEY === "ВСТАВТЕ_ВАШ_ПУБЛІЧНИЙ_ANON_КЛЮЧ_СЮДИ") {
+            console.error("Помилка: Не вказано Supabase Anon Key!");
+            // Можна тут показати помилку користувачу
+        }
+
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Головний компонент додатку
+        function App() {
+            // 'create' або 'edit'
+            const [mode, setMode] = useState('create'); 
+            
+            // Поля для форми
+            const [searchId, setSearchId] = useState('');
+            const [currentParcelId, setCurrentParcelId] = useState(null);
+            const [orderDetails, setOrderDetails] = useState('');
+            const [quantity, setQuantity] = useState('');
+            const [destination, setDestination] = useState('');
+            const [tth, setTth] = useState('');
+
+            // Допоміжні стани
+            const [isLoading, setIsLoading] = useState(false);
+            const [message, setMessage] = useState({ type: '', text: '' });
+
+            // Очищення форми
+            const clearForm = (clearSearch = false) => {
+                if (clearSearch) setSearchId('');
+                setCurrentParcelId(null);
+                setOrderDetails('');
+                setQuantity('');
+                setDestination('');
+                setTth('');
+            };
+
+            // Скидання повідомлення
+            const clearMessage = () => setMessage({ type: '', text: '' });
+
+            // Функція 1: Пошук посилки
+            const handleFindParcel = async (e) => {
+                e.preventDefault();
+                clearForm();
+                clearMessage();
+                
+                if (!searchId) {
+                    setMessage({ type: 'error', text: 'Введіть ID для пошуку' });
+                    return;
+                }
+                
+                setIsLoading(true);
+                
+                const { data, error } = await supabaseClient
+                    .from('parcels')
+                    .select('*')
+                    .eq('id', searchId)
+                    .single(); // .single() поверне 1 об'єкт або помилку, якщо не знайдено
+
+                setIsLoading(false);
+
+                if (error) {
+                    console.error('Помилка пошуку:', error);
+                    setMessage({ type: 'error', text: `Посилку з ID ${searchId} не знайдено.` });
+                } else {
+                    setMessage({ type: 'success', text: `Знайдено посилку #${data.id}. Тепер ви можете її оновити.` });
+                    // Заповнюємо форму знайденими даними
+                    setCurrentParcelId(data.id);
+                    setOrderDetails(data.order_details || '');
+                    setQuantity(data.quantity || '');
+                    setDestination(data.destination || '');
+                    setTth(data.tth || '');
+                }
+            };
+
+            // Функція 2: Створення нової посилки
+            const handleCreateParcel = async (e) => {
+                e.preventDefault();
+                clearMessage();
+                
+                if (!orderDetails) {
+                    setMessage({ type: 'error', text: "Поле 'Що замовлено?' є обов'язковим." });
+                    return;
+                }
+                
+                setIsLoading(true);
+
+                const { data, error } = await supabaseClient
+                    .from('parcels')
+                    .insert([
+                        { 
+                            order_details: orderDetails, 
+                            quantity: quantity || null, // null якщо порожньо
+                            destination: destination || null,
+                            tth: tth || null 
+                        }
+                    ])
+                    .select(); // .select() повертає створений запис
+
+                setIsLoading(false);
+
+                if (error) {
+                    console.error('Помилка створення:', error);
+                    setMessage({ type: 'error', text: `Помилка: ${error.message}` });
+                } else {
+                    setMessage({ type: 'success', text: `Створено нове замовлення #${data[0].id}!` });
+                    clearForm();
+                }
+            };
+
+            // Функція 3: Оновлення існуючої посилки
+            const handleUpdateParcel = async (e) => {
+                e.preventDefault();
+                clearMessage();
+
+                if (!currentParcelId) return; // Немає чого оновлювати
+
+                if (!tth) {
+                     setMessage({ type: 'warning', text: "Ви оновлюєте посилку, але поле ТТН порожнє." });
+                }
+                
+                setIsLoading(true);
+
+                const { data, error } = await supabaseClient
+                    .from('parcels')
+                    .update({ 
+                        order_details: orderDetails, 
+                        quantity: quantity,
+                        destination: destination,
+                        tth: tth // Оновлюємо ТТН
+                    })
+                    .eq('id', currentParcelId)
+                    .select();
+
+                setIsLoading(false);
+
+                if (error) {
+                    console.error('Помилка оновлення:', error);
+                    setMessage({ type: 'error', text: `Помилка: ${error.message}` });
+                } else {
+                    setMessage({ type: 'success', text: `Посилку #${currentParcelId} успішно оновлено!` });
+                    // Очищаємо форму, але залишаємо режим редагування
+                    clearForm(true);
+                }
+            };
+
+            // Визначення, яку кнопку "Submit" показувати
+            const isEditMode = currentParcelId !== null;
+
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+                    <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
+                        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+                            Керування Посилками
+                        </h1>
+
+                        {/* Перемикач режимів Створити/Редагувати */}
+                        <div className="flex justify-center rounded-md shadow-sm mb-6">
+                            <button
+                                onClick={() => { setMode('create'); clearForm(true); clearMessage(); }}
+                                className={`w-full py-3 px-4 rounded-l-md font-semibold ${mode === 'create' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                            >
+                                Створити
+                            </button>
+                            <button
+                                onClick={() => { setMode('edit'); clearForm(true); clearMessage(); }}
+                                className={`w-full py-3 px-4 rounded-r-md font-semibold ${mode === 'edit' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                            >
+                                Знайти / Редагувати
+                            </button>
+                        </div>
+
+                        {/* Блок Повідомлень */}
+                        {message.text && (
+                            <div className={`p-4 rounded-md mb-4 ${
+                                message.type === 'error' ? 'bg-red-100 text-red-700' : 
+                                message.type === 'success' ? 'bg-green-100 text-green-700' :
+                                'bg-yellow-100 text-yellow-700'
+                            }`}>
+                                {message.text}
+                            </div>
+                        )}
+
+
+                        {/* --- РЕЖИМ РЕДАГУВАННЯ: ФОРМА ПОШУКУ --- */}
+                        {mode === 'edit' && (
+                            <form onSubmit={handleFindParcel} className="mb-6">
+                                <label htmlFor="searchId" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Пошук за ID посилки (напр., 1001)
+                                </label>
+                                <div className="flex">
+                                    <input
+                                        type="number"
+                                        id="searchId"
+                                        value={searchId}
+                                        onChange={(e) => setSearchId(e.target.value)}
+                                        className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="Введіть ID"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-r-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
+                                    >
+                                        {isLoading ? 'Пошук...' : 'Знайти'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                        
+                        {/* --- ЗАГАЛЬНА ФОРМА ДЛЯ СТВОРЕННЯ / РЕДАГУВАННЯ --- */}
+                        {/* Ця форма активна в режимі 'create' 
+                            або в режимі 'edit' ПІСЛЯ того, як посилку знайдено
+                        */}
+                        { (mode === 'create' || currentParcelId) && (
+                            <form onSubmit={isEditMode ? handleUpdateParcel : handleCreateParcel} className="space-y-4">
+                                {isEditMode && (
+                                    <p className="text-lg font-semibold text-center text-blue-700">
+                                        Редагування посилки #{currentParcelId}
+                                    </p>
+                                )}
+
+                                <div>
+                                    <label htmlFor="orderDetails" className="block text-sm font-medium text-gray-700">
+                                        Що замовлено? (Обов'язково)
+                                    </label>
+                                    <textarea
+                                        id="orderDetails"
+                                        rows="3"
+                                        value={orderDetails}
+                                        onChange={(e) => setOrderDetails(e.target.value)}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        required
+                                    ></textarea>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+                                            Кількість
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="quantity"
+                                            value={quantity}
+                                            onChange={(e) => setQuantity(e.target.value)}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                            placeholder="напр., 5 шт."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="destination" className="block text-sm font-medium text-gray-700">
+                                            На який об'єкт / Для кого?
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="destination"
+                                            value={destination}
+                                            onChange={(e) => setDestination(e.target.value)}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                            placeholder="напр., Офіс"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="tth" className="block text-sm font-medium text-gray-700">
+                                        ТТН (Номер накладної)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="tth"
+                                        value={tth}
+                                        onChange={(e) => setTth(e.target.value)}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="Введіть ТТН, коли вона з'явиться"
+                                    />
+                                </div>
+
+                                <hr className="pt-2"/>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                                >
+                                    {isLoading ? 'Завантаження...' : (isEditMode ? 'Оновити Посилку' : 'Створити Замовлення')}
+                                </button>
+
+                                {isEditMode && (
+                                     <button
+                                        type="button"
+                                        onClick={() => { clearForm(true); clearMessage(); }}
+                                        className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        Скасувати редагування
+                                    </button>
+                                )}
+                            </form>
+                        )}
+
+                    </div>
+                </div>
+            );
+        }
+
+        // "Малюємо" наш React-додаток в 'root'
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+    </script>
+</body>
+</html>
