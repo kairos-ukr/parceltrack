@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Керування Посилками</title>
     <!-- 1. Підключення Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,9 +12,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        /* Додамо плавності для інтерактивних елементів */
+        button, input, textarea {
+            transition: all 0.15s ease-in-out;
+        }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-200"> <!-- Змінено фон для кращого контрасту -->
     
     <!-- Елемент, куди React буде "монтувати" додаток -->
     <div id="root"></div>
@@ -34,7 +38,6 @@
         const { createClient } = supabase;
 
         // === ВАЖЛИВІ НАЛАШТУВАННЯ SUPABASE ===
-        // Вставте ваш URL та ПУБЛІЧНИЙ (ANON) КЛЮЧ
         const SUPABASE_URL = "https://logxutaepqzmvgsvscle.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvZ3h1dGFlcHF6bXZnc3ZzY2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODU4MDEsImV4cCI6MjA2OTU2MTgwMX0.NhbaKL5X48jHyPPxZ-6EadLcBfM-NMxMA8qbksT9VhE";
         // ====================================
@@ -42,7 +45,6 @@
         // Перевірка, чи вставлено ключ
         if (SUPABASE_ANON_KEY === "ВСТАВТЕ_ВАШ_ПУБЛІЧНИЙ_ANON_КЛЮЧ_СЮДИ") {
             console.error("Помилка: Не вказано Supabase Anon Key!");
-            // Можна тут показати помилку користувачу
         }
 
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -94,7 +96,7 @@
                     .from('parcels')
                     .select('*')
                     .eq('id', searchId)
-                    .single(); // .single() поверне 1 об'єкт або помилку, якщо не знайдено
+                    .single(); 
 
                 setIsLoading(false);
 
@@ -103,7 +105,6 @@
                     setMessage({ type: 'error', text: `Посилку з ID ${searchId} не знайдено.` });
                 } else {
                     setMessage({ type: 'success', text: `Знайдено посилку #${data.id}. Тепер ви можете її оновити.` });
-                    // Заповнюємо форму знайденими даними
                     setCurrentParcelId(data.id);
                     setOrderDetails(data.order_details || '');
                     setQuantity(data.quantity || '');
@@ -129,12 +130,12 @@
                     .insert([
                         { 
                             order_details: orderDetails, 
-                            quantity: quantity || null, // null якщо порожньо
+                            quantity: quantity || null,
                             destination: destination || null,
                             tth: tth || null 
                         }
                     ])
-                    .select(); // .select() повертає створений запис
+                    .select(); 
 
                 setIsLoading(false);
 
@@ -152,7 +153,7 @@
                 e.preventDefault();
                 clearMessage();
 
-                if (!currentParcelId) return; // Немає чого оновлювати
+                if (!currentParcelId) return; 
 
                 if (!tth) {
                      setMessage({ type: 'warning', text: "Ви оновлюєте посилку, але поле ТТН порожнє." });
@@ -166,7 +167,7 @@
                         order_details: orderDetails, 
                         quantity: quantity,
                         destination: destination,
-                        tth: tth // Оновлюємо ТТН
+                        tth: tth 
                     })
                     .eq('id', currentParcelId)
                     .select();
@@ -178,7 +179,6 @@
                     setMessage({ type: 'error', text: `Помилка: ${error.message}` });
                 } else {
                     setMessage({ type: 'success', text: `Посилку #${currentParcelId} успішно оновлено!` });
-                    // Очищаємо форму, але залишаємо режим редагування
                     clearForm(true);
                 }
             };
@@ -186,24 +186,28 @@
             // Визначення, яку кнопку "Submit" показувати
             const isEditMode = currentParcelId !== null;
 
+            // Покращені класи для полів вводу
+            const inputClasses = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-50";
+
             return (
-                <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-                    <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
-                        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+                <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4">
+                    {/* Картка стала виразнішою */}
+                    <div className="max-w-2xl w-full bg-white rounded-xl shadow-xl border border-gray-200 p-8">
+                        <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
                             Керування Посилками
                         </h1>
 
                         {/* Перемикач режимів Створити/Редагувати */}
-                        <div className="flex justify-center rounded-md shadow-sm mb-6">
+                        <div className="flex justify-center rounded-lg shadow-sm mb-6 border border-gray-200 overflow-hidden">
                             <button
                                 onClick={() => { setMode('create'); clearForm(true); clearMessage(); }}
-                                className={`w-full py-3 px-4 rounded-l-md font-semibold ${mode === 'create' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                className={`w-full py-3 px-4 font-semibold text-lg ${mode === 'create' ? 'bg-blue-600 text-white shadow-inner' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
                             >
                                 Створити
                             </button>
                             <button
                                 onClick={() => { setMode('edit'); clearForm(true); clearMessage(); }}
-                                className={`w-full py-3 px-4 rounded-r-md font-semibold ${mode === 'edit' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                className={`w-full py-3 px-4 font-semibold text-lg ${mode === 'edit' ? 'bg-blue-600 text-white shadow-inner' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
                             >
                                 Знайти / Редагувати
                             </button>
@@ -211,10 +215,10 @@
 
                         {/* Блок Повідомлень */}
                         {message.text && (
-                            <div className={`p-4 rounded-md mb-4 ${
-                                message.type === 'error' ? 'bg-red-100 text-red-700' : 
-                                message.type === 'success' ? 'bg-green-100 text-green-700' :
-                                'bg-yellow-100 text-yellow-700'
+                            <div className={`p-4 rounded-lg mb-6 shadow ${
+                                message.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 
+                                message.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+                                'bg-yellow-100 text-yellow-800 border border-yellow-200'
                             }`}>
                                 {message.text}
                             </div>
@@ -224,23 +228,27 @@
                         {/* --- РЕЖИМ РЕДАГУВАННЯ: ФОРМА ПОШУКУ --- */}
                         {mode === 'edit' && (
                             <form onSubmit={handleFindParcel} className="mb-6">
-                                <label htmlFor="searchId" className="block text-sm font-medium text-gray-700 mb-2">
+                                <label htmlFor="searchId" className="block text-sm font-semibold text-gray-700 mb-2">
                                     Пошук за ID посилки (напр., 1001)
                                 </label>
-                                <div className="flex">
+                                <div className="flex shadow-sm rounded-lg">
                                     <input
                                         type="number"
                                         id="searchId"
                                         value={searchId}
                                         onChange={(e) => setSearchId(e.target.value)}
-                                        className="flex-1 block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="flex-1 block w-full rounded-l-lg border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-50"
                                         placeholder="Введіть ID"
                                     />
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-r-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
+                                        className="inline-flex items-center justify-center px-5 py-2 border border-transparent rounded-r-lg shadow-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     >
+                                        {/* Іконка пошуку SVG */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                                        </svg>
                                         {isLoading ? 'Пошук...' : 'Знайти'}
                                     </button>
                                 </div>
@@ -248,19 +256,16 @@
                         )}
                         
                         {/* --- ЗАГАЛЬНА ФОРМА ДЛЯ СТВОРЕННЯ / РЕДАГУВАННЯ --- */}
-                        {/* Ця форма активна в режимі 'create' 
-                            або в режимі 'edit' ПІСЛЯ того, як посилку знайдено
-                        */}
                         { (mode === 'create' || currentParcelId) && (
-                            <form onSubmit={isEditMode ? handleUpdateParcel : handleCreateParcel} className="space-y-4">
+                            <form onSubmit={isEditMode ? handleUpdateParcel : handleCreateParcel} className="space-y-5">
                                 {isEditMode && (
-                                    <p className="text-lg font-semibold text-center text-blue-700">
+                                    <p className="text-xl font-semibold text-center text-blue-700 pb-2">
                                         Редагування посилки #{currentParcelId}
                                     </p>
                                 )}
 
                                 <div>
-                                    <label htmlFor="orderDetails" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="orderDetails" className="block text-sm font-semibold text-gray-700">
                                         Що замовлено? (Обов'язково)
                                     </label>
                                     <textarea
@@ -268,14 +273,14 @@
                                         rows="3"
                                         value={orderDetails}
                                         onChange={(e) => setOrderDetails(e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className={inputClasses}
                                         required
                                     ></textarea>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     <div>
-                                        <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+                                        <label htmlFor="quantity" className="block text-sm font-semibold text-gray-700">
                                             Кількість
                                         </label>
                                         <input
@@ -283,12 +288,12 @@
                                             id="quantity"
                                             value={quantity}
                                             onChange={(e) => setQuantity(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                            className={inputClasses}
                                             placeholder="напр., 5 шт."
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="destination" className="block text-sm font-medium text-gray-700">
+                                        <label htmlFor="destination" className="block text-sm font-semibold text-gray-700">
                                             На який об'єкт / Для кого?
                                         </label>
                                         <input
@@ -296,14 +301,14 @@
                                             id="destination"
                                             value={destination}
                                             onChange={(e) => setDestination(e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                            className={inputClasses}
                                             placeholder="напр., Офіс"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label htmlFor="tth" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="tth" className="block text-sm font-semibold text-gray-700">
                                         ТТН (Номер накладної)
                                     </label>
                                     <input
@@ -311,29 +316,39 @@
                                         id="tth"
                                         value={tth}
                                         onChange={(e) => setTth(e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className={inputClasses}
                                         placeholder="Введіть ТТН, коли вона з'явиться"
                                     />
                                 </div>
 
-                                <hr className="pt-2"/>
+                                <hr className="pt-2 border-gray-200"/>
 
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                                    className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transform hover:-translate-y-0.5"
                                 >
+                                    {/* Іконка залежно від режиму */}
+                                    {isEditMode ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                    )}
                                     {isLoading ? 'Завантаження...' : (isEditMode ? 'Оновити Посилку' : 'Створити Замовлення')}
                                 </button>
 
                                 {isEditMode && (
                                      <button
-                                        type="button"
-                                        onClick={() => { clearForm(true); clearMessage(); }}
-                                        className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                                    >
-                                        Скасувати редагування
-                                    </button>
+                                         type="button"
+                                         onClick={() => { clearForm(true); clearMessage(); }}
+                                         className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                     >
+                                         Скасувати редагування
+                                     </button>
                                 )}
                             </form>
                         )}
